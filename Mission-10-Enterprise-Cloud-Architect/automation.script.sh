@@ -1,41 +1,17 @@
-
 #!/bin/bash
+set -e
 
-# Mission 10: The Enterprise Cloud Architect
-# Automated MariaDB database backup
+cd "$HOME/mission10"
+mkdir -p "$HOME/mission10/backups"
 
-set -Eeuo pipefail
+echo "Starting database backup..."
 
-PROJECT_DIR="/home/cloudnova/mission10"
-BACKUP_DIR="$PROJECT_DIR/backups"
-BACKUP_FILE="$BACKUP_DIR/database_backup_$(date +%Y%m%d_%H%M%S).sql"
-LOG_FILE="$BACKUP_DIR/backup.log"
+sudo docker compose exec -T db sh -c 'mariadb-dump -u root -p"$MYSQL_ROOT_PASSWORD" --all-databases' > "$HOME/mission10/backups/database_backup.sql"
 
-mkdir -p "$BACKUP_DIR"
-
-log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-cd "$PROJECT_DIR"
-
-log_message "Starting database backup..."
-
-if docker compose exec -T db sh -c \
-    'exec mariadb-dump -u root -p"$MYSQL_ROOT_PASSWORD" --all-databases' \
-    > "$BACKUP_FILE" 2>> "$LOG_FILE"; then
-
-    if [ -s "$BACKUP_FILE" ]; then
-        log_message "Backup completed successfully: $BACKUP_FILE"
-        ls -lh "$BACKUP_FILE" | tee -a "$LOG_FILE"
-    else
-        rm -f "$BACKUP_FILE"
-        log_message "ERROR: Backup file is empty."
-        exit 1
-    fi
+if [ -s "$HOME/mission10/backups/database_backup.sql" ]; then
+    echo "Backup completed successfully!"
+    ls -lh "$HOME/mission10/backups/database_backup.sql"
 else
-    rm -f "$BACKUP_FILE"
-    log_message "ERROR: Database backup failed."
+    echo "Backup failed: SQL file is empty."
     exit 1
 fi
-
